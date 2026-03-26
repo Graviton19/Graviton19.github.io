@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aalekh Bukhariya</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #222;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+    text-align: justify;
+  }
+
+  #wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 56px 24px 100px;
+    background: #fff;
+  }
+
+  /* ── Header / Profile ── */
+  #header {
+    display: flex;
+    gap: 36px;
+    align-items: stretch;
+    margin-bottom: 44px;
+  }
+
+  #header img {
+    width: 175px;
+    height: auto;
+    object-fit: cover;
+    object-position: center top;
+    border-radius: 5px;
+    flex-shrink: 0;
+    align-self: stretch;
+    display: block;
+  }
+
+  #header-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  #header-right h1 {
+    font-size: 1.85rem;
+    font-weight: bold;
+    margin: 0 0 3px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    text-align: left;
+  }
+
+  #header-right .affil {
+    font-size: 0.93rem;
+    color: #666;
+    margin-bottom: 14px;
+    font-style: italic;
+    text-align: left;
+  }
+
+  #header-right p {
+    font-size: 0.96rem;
+    color: #333;
+    margin: 0 0 14px;
+    flex-grow: 1;
+  }
+
+  #header-right .contact {
+    font-size: 0.92rem;
+    color: #333;
+    margin-bottom: 7px;
+    text-align: left;
+  }
+
+  #header-right .nav-links {
+    font-size: 0.92rem;
+    text-align: left;
+  }
+
+  #header-right .nav-links a,
+  #header-right .contact a {
+    color: #1a0dab;
+    text-decoration: none;
+  }
+  #header-right .nav-links a:hover,
+  #header-right .contact a:hover {
+    text-decoration: underline;
+  }
+
+  #header-right .nav-links a::before { content: '['; }
+  #header-right .nav-links a::after  { content: ']'; }
+  #header-right .nav-links a {
+    margin-right: 6px;
+  }
+
+  /* ── Divider ── */
+  hr {
+    border: none;
+    border-top: 1px solid #ccc;
+    margin: 36px 0;
+  }
+
+  /* ── Section headings ── */
+  h2 {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin: 0 0 16px;
+    text-align: left;
+  }
+
+  /* ── Current Research ── */
+  .research-item {
+    margin-bottom: 20px;
+  }
+
+  .research-item .rtitle {
+    font-weight: bold;
+    font-size: 0.97rem;
+    text-align: left;
+  }
+
+  .research-item .rstatus {
+    font-size: 0.85rem;
+    color: #888;
+    font-style: italic;
+    margin-left: 6px;
+  }
+
+  .research-item p {
+    margin: 4px 0 6px;
+    font-size: 0.93rem;
+    color: #444;
+  }
+
+  .research-item .rlinks a {
+    color: #1a0dab;
+    text-decoration: none;
+    font-size: 0.88rem;
+    margin-right: 10px;
+  }
+  .research-item .rlinks a:hover { text-decoration: underline; }
+  .research-item .rlinks a::before { content: '['; }
+  .research-item .rlinks a::after  { content: ']'; }
+
+  /* ── Publications / Projects ── */
+  .year {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #555;
+    margin: 28px 0 14px;
+    text-align: left;
+  }
+
+  .research-item .rlinks {
+    text-align: left;
+  }
+
+  .pub {
+    margin-bottom: 26px;
+  }
+
+  .pub .ptitle {
+    font-weight: bold;
+    font-size: 0.97rem;
+    text-align: left;
+  }
+
+  .pub .pauthors {
+    font-size: 0.9rem;
+    color: #444;
+    margin: 2px 0;
+    text-align: left;
+  }
+
+  .pub .pvenue {
+    font-size: 0.9rem;
+    color: #333;
+    margin: 2px 0;
+    text-align: left;
+  }
+
+  .pub .pvenue .award {
+    color: #b8860b;
+  }
+
+  .pub .plinks {
+    font-size: 0.88rem;
+    margin-top: 4px;
+  }
+
+  .pub .plinks a {
+    color: #1a0dab;
+    text-decoration: none;
+    margin-right: 6px;
+  }
+  .pub .plinks a:hover { text-decoration: underline; }
+  .pub .plinks a::before { content: '['; }
+  .pub .plinks a::after  { content: ']'; }
+
+  .pub .pabstract {
+    font-size: 0.88rem;
+    color: #444;
+    margin-top: 6px;
+    line-height: 1.65;
+  }
+
+  /* ── Misc list ── */
+  ul.misc {
+    padding-left: 20px;
+    margin: 0;
+    font-size: 0.93rem;
+    color: #333;
+  }
+  ul.misc li { margin-bottom: 5px; }
+
+  @media (max-width: 640px) {
+    #wrap { padding: 32px 18px 60px; }
+    #header { flex-direction: column; gap: 20px; }
+    #header img { width: 120px; height: auto; }
+    #header-right h1 { font-size: 1.5rem; }
+  }
+
+  @media (min-width: 641px) and (max-width: 860px) {
+    #wrap { padding: 48px 32px 80px; }
+    #header img { width: 150px; }
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+
+  <!-- ── Header ── -->
+  <div id="header">
+    <img src="aalekh1.jpeg" alt="Aalekh Bukhariya">
+    <div id="header-right">
+      <h1>Aalekh Bukhariya</h1>
+      <div class="affil">Master's in Computer Science &nbsp;·&nbsp; George Washington University</div>
+
+      <p>
+        Hi! I’m a master’s student at George Washington University, and my research interests include post-training and alignment of large language models, particularly how we can align LLMs to capture diverse and pluralistic human values, how we can avoid the homogeneity of responses that could arise from RLHF, and post-training more generally. I am also interested in applying deep learning to genomic sequence data. Previously, I worked with <a href="https://kahuja.profiles.iiti.ac.in/">Dr. Kapil Ahuja</a> at the Mathematics of Data Science and Simulation lab in the Indian Institute of Technology Indore on DNA Gap prediction using Deep learning.
+      </p>
+
+      <div class="contact">
+        Email: <b>aalekhbukhariya@gmail.com</b>
+      </div>
+
+      <div class="nav-links">
+        <a href="#">CV</a>
+        <a href="https://github.com/Graviton19">GitHub</a>
+        <!-- <a href="#">Google Scholar</a>
+        <a href="#">Twitter / X</a> -->
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── Current Research ── -->
+  <h2>Current Research</h2>
+
+  <div class="research-item">
+    <span class="rtitle">Efficient Pluralistic Alignment</span>
+    <span class="rstatus">ongoing</span>
+    <p>
+      Alignment techniques today produce a single policy that best represents the combined aggregate preference. The diversity of human values is reduced to a single mode. This project seeks to explore computationally efficient ways to train or steer models that can represent and operate across multiple value systems simultaneously, while mitigating the homogeneity in responses found in LLMs.
+    </p>
+    <div class="rlinks">
+      <a href="efficient_pluralism.html">abstract</a>
+    </div>
+  </div>
+
+  <div class="research-item">
+    <span class="rtitle">Hallucination Geometry</span>
+    <span class="rstatus">ongoing</span>
+    <p>
+      LLMs hallucinate that they produce confident, fluent, and incorrect outputs. This project takes a Representational perspective: Where in the model's internal geometry do hallucinations live? By probing activations of factual vs. hallucinated content, we aim to understand hallucination as a geometric phenomenon and derive principled interventions.
+    </p>
+    <div class="rlinks">
+      <a href="hallucination_geometry.html">abstract</a>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── Projects ── -->
+  <h2>Research Experience</h2>
+
+  <div class="year">2025</div>
+
+  <div class="pub">
+    <div class="ptitle">Genomic Gap Prediction in DNA sequences using Language Models</div>
+    <div class="pauthors">under Dr. Kapil Ahuja</div>
+    <div class="pvenue">IIT Indore &nbsp;·&nbsp; Supervised research</div>
+    <div class="plinks">
+      <!-- <a href="#">abstract</a> -->
+      <!-- <a href="#">code</a> -->
+    </div>
+    <div class="pabstract">
+      In DNA sequences, after being extracted, they may contain unresolved sections, which are often replaced by ambiguous ‘N’s instead of the actual DNA bases (A, T, G, C). In this study, gap imputation is addressed using deep learning methods, including transformers and language modeling.
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ── Miscellaneous ── -->
+  <h2>Miscellaneous</h2>
+  <p style="font-size: 0.93rem; color: #e21212; text-align: justify;"><b>
+    I am actively looking for internships for Summer 2026 in Machine Learning Enigneering, Deep Learning,
+    and Natural Language Processing. I would also be very grateful for a research internship
+    if you are working on something related to alignment, LLM post-training, or ML for biology,
+    I would love to connect!
+  </p></b>
+
+</div>
+</body>
+</html>

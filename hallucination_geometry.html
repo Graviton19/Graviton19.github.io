@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hallucination Geometry — Aalekh Bukhariya</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 16px;
+    line-height: 1.85;
+    color: #222;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+
+  #wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 56px 24px 100px;
+  }
+
+  .breadcrumb {
+    font-size: 0.88rem;
+    color: #888;
+    margin-bottom: 40px;
+  }
+  .breadcrumb a {
+    color: #1a0dab;
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb span { margin: 0 6px; }
+
+  .paper-title {
+    font-size: 1.65rem;
+    font-weight: bold;
+    line-height: 1.3;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .paper-subtitle {
+    font-size: 1rem;
+    font-style: italic;
+    color: #555;
+    margin: 0 0 16px;
+    text-align: justify;
+  }
+
+  .paper-meta {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 5px;
+  }
+
+  .paper-links {
+    font-size: 0.9rem;
+    margin: 12px 0 0;
+  }
+  .paper-links a {
+    color: #1a0dab;
+    text-decoration: none;
+    margin-right: 6px;
+  }
+  .paper-links a:hover { text-decoration: underline; }
+  .paper-links a::before { content: '['; }
+  .paper-links a::after  { content: ']'; }
+
+  hr {
+    border: none;
+    border-top: 1px solid #ccc;
+    margin: 30px 0;
+  }
+
+  .abstract-box {
+    border-left: 3px solid #ccc;
+    padding: 12px 20px;
+    margin: 28px 0;
+    background: #fafaf8;
+  }
+
+  .abstract-box .label {
+    font-size: 0.78rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-bottom: 8px;
+  }
+
+  .abstract-box p {
+    font-size: 0.94rem;
+    color: #333;
+    margin: 0;
+    text-align: justify;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 32px 0 12px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .ref-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .ref-list li {
+    font-size: 0.88rem;
+    color: #444;
+    margin-bottom: 10px;
+    padding-left: 1.6em;
+    text-indent: -1.6em;
+    text-align: justify;
+  }
+
+  .ref-list a {
+    color: #1a0dab;
+    text-decoration: none;
+  }
+  .ref-list a:hover { text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    #wrap { padding: 32px 18px 60px; }
+    .paper-title { font-size: 1.3rem; }
+    .fig-grid { grid-template-columns: 1fr !important; }
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+
+  <div class="breadcrumb">
+    <a href="index.html">Aalekh Bukhariya</a>
+    <span>›</span>
+    Hallucination Geometry
+  </div>
+
+  <div class="paper-title">Hallucination Geometry: Why Do Hallucination States Cluster at the Center of a Transformer's Representation Space?</div>
+  <div class="paper-subtitle">A mechanistic interpretability investigation into the geometric structure of factual hallucination in large language models</div>
+  <div class="paper-meta"><strong>Aalekh Bukhariya, Rachit Rahul Das</strong> &nbsp;·&nbsp; George Washington University &nbsp;·&nbsp; Fall 2025</div>
+  <div class="paper-meta">Course: CSCI 4366/6366 Neural Networks and Deep Learning &nbsp;·&nbsp; Status: <em>ongoing</em></div>
+  <div class="paper-links">
+    <!-- <a href="Semester_project_universal_lies.pdf">proposal pdf</a> -->
+    <a href="#">code (coming soon)</a>
+  </div>
+
+  <hr>
+
+  <div class="abstract-box">
+    <div class="label">Abstract</div>
+    <p>
+      Large Language Models (LLMs) have fundamentally transformed natural language processing, yet factual hallucinations remain one of the most persistent obstacles to their reliable deployment. The industry has largely focused on external mitigation strategies:
+Retrieval-Augmented Generation (RAG): Grounding model responses by supplying external factual context at inference time.
+Prompt Engineering: Constraining model behavior through carefully crafted instructions.
+While these approaches have proven partially effective, they treat hallucination as a symptomatic output error  patching the surface without interrogating the underlying mechanism that produces it.
+Our Approach: Internal Probing
+A growing body of research has begun looking inward, using linear probes to examine how information is stored and processed across transformer layers. This has established that certain layers are disproportionately associated with false information generation, yet a fundamental question remains open: Why do hallucination states take the geometric shape they do inside the transformer?
+How We Differ
+The field has converged on two dominant internal approaches. The first is statistical probing - training linear classifiers on hidden states to predict whether a response is hallucinated. The second is mechanistic attribution - using attention analysis or residual stream decomposition to identify which components contribute to hallucination.
+Prior work identifies hidden state vectors regardless of whether they are hallucinated or truthful; they trace out a distinctive horn-like shape in the representation space. However, no study offers a mechanistic account of why this structure exists. Our experiments further reveal hallucination states cluster toward the center while truthful states are peripherally localized - a finding that prior work has not identified or investigated.
+Unlike previous studies that use statistical and matrix properties to justify the existence of hallucinations, we focus on why this geometric pattern emerges, pursuing a first-principles explanation by analyzing hidden states, attention outputs, and MLP outputs at each transformer layer. This positions our work across two distinct contributions:
+From detection to explanation:We ask why internal states produce the pattern they do.
+From observation to mechanism: The horn-like geometry has been observed but never causally grounded. We investigate it through the computational primitives of the transformer: hidden states, attention outputs, and MLP outputs to identify the clustering structure.
+
+    </p>
+  </div>
+
+  <hr>
+
+  <h2>Observed Pattern</h2>
+
+  <p style="font-size: 0.94rem; color: #333; text-align: justify;">
+    Below are the PCA visualizations of hidden state vectors extracted during response generation
+    across two model architectures. In both cases, hallucinated response states (shown in one
+    cluster) concentrate toward the center of the representation space, while truthful response
+    states are peripherally localized — a pattern that holds consistently and is absent from
+    prompt token states.
+  </p>
+
+  <div class="fig-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0;">
+
+    <div style="text-align: center;">
+      <div style="border: 1px solid #ddd; background: #fafaf8; padding: 16px; min-height: 220px; display: flex; align-items: center; justify-content: center;">
+        <img src="Qwen Qwen2.5-1.5B-Instructhallucination_states_layer_analysis_last.png" alt="Observed pattern on Qwen" style="max-width: 100%; height: auto; display: block;">
+      </div>
+      <p style="font-size: 0.82rem; color: #777; font-style: italic; margin-top: 8px; text-align: center;">
+        Figure 1. Hidden state geometry on Qwen 2.5-1.5B / Qwen3-1.7B.
+      </p>
+    </div>
+
+    <div style="text-align: center;">
+      <div style="border: 1px solid #ddd; background: #fafaf8; padding: 16px; min-height: 220px; display: flex; align-items: center; justify-content: center;">
+        <img src="MistralHallucinations.png" alt="Observed pattern on Mistral" style="max-width: 100%; height: auto; display: block;">
+      </div>
+      <p style="font-size: 0.82rem; color: #777; font-style: italic; margin-top: 8px; text-align: center;">
+        Figure 2. Hidden state geometry on Mistral-7B-Instruct-v0.2.
+      </p>
+    </div>
+
+  </div>
+
+  <hr>
+
+  <h2>References</h2>
+  <ul class="ref-list">
+    <li>
+      Amos Azaria and Tom Mitchell.
+      The internal state of an LLM knows when it's lying.
+      <em>EMNLP 2023 Findings.</em>
+    </li>
+    <li>
+      Gao et al.
+      H-Neurons: On the existence, impact, and origin of hallucination-associated neurons in LLMs.
+      <em>2025.</em>
+    </li>
+    <li>
+      Chen et al.
+      INSIDE: LLMs' internal states retain the power of hallucination detection.
+      <em>ICLR 2024.</em>
+    </li>
+    <li>
+      Mao et al.
+      Visualizing and benchmarking LLM factual hallucination tendencies via internal state analysis and clustering.
+      FalseCite benchmark. <em>2026.</em>
+    </li>
+    <li>
+      Skean et al.
+      Layer by layer: Uncovering where LLM representations transform meaning.
+      <em>2025.</em>
+    </li>
+  </ul>
+
+</div>
+</body>
+</html>

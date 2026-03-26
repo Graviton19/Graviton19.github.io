@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Efficient Pluralism — Aalekh Bukhariya</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 16px;
+    line-height: 1.85;
+    color: #222;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+
+  #wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 56px 24px 100px;
+  }
+
+  .breadcrumb {
+    font-size: 0.88rem;
+    color: #888;
+    margin-bottom: 40px;
+  }
+  .breadcrumb a {
+    color: #1a0dab;
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb span { margin: 0 6px; }
+
+  .paper-title {
+    font-size: 1.65rem;
+    font-weight: bold;
+    line-height: 1.3;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .paper-subtitle {
+    font-size: 1rem;
+    font-style: italic;
+    color: #555;
+    margin: 0 0 16px;
+    text-align: justify;
+  }
+
+  .paper-meta {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 5px;
+  }
+
+  .paper-links {
+    font-size: 0.9rem;
+    margin: 12px 0 0;
+  }
+  .paper-links a {
+    color: #1a0dab;
+    text-decoration: none;
+    margin-right: 6px;
+  }
+  .paper-links a:hover { text-decoration: underline; }
+  .paper-links a::before { content: '['; }
+  .paper-links a::after  { content: ']'; }
+
+  hr {
+    border: none;
+    border-top: 1px solid #ccc;
+    margin: 30px 0;
+  }
+
+  .abstract-box {
+    border-left: 3px solid #ccc;
+    padding: 12px 20px;
+    margin: 28px 0;
+    background: #fafaf8;
+  }
+
+  .abstract-box .label {
+    font-size: 0.78rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-bottom: 8px;
+  }
+
+  .abstract-box p {
+    font-size: 0.94rem;
+    color: #333;
+    margin: 0;
+    text-align: justify;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 32px 0 12px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .ref-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .ref-list li {
+    font-size: 0.88rem;
+    color: #444;
+    margin-bottom: 10px;
+    padding-left: 1.6em;
+    text-indent: -1.6em;
+    text-align: justify;
+  }
+
+  .ref-list a {
+    color: #1a0dab;
+    text-decoration: none;
+  }
+  .ref-list a:hover { text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    #wrap { padding: 32px 18px 60px; }
+    .paper-title { font-size: 1.3rem; }
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+
+  <div class="breadcrumb">
+    <a href="index.html">Aalekh Bukhariya</a>
+    <span>›</span>
+    Efficient Pluralism
+  </div>
+
+  <div class="paper-title">Efficient Pluralism: Can Pluralistic Alignment Mitigate the Artificial Hivemind Effect in LLMs?</div>
+  <div class="paper-subtitle">Replacing LoRA with PrefixMemory Tuning in Modular Pluralism for scalable, diverse LLM responses</div>
+  <div class="paper-meta"><strong>Aalekh Bukhariya</strong> &nbsp;·&nbsp; George Washington University &nbsp;·&nbsp; 2025</div>
+  <div class="paper-meta">Status: <em>ongoing research project</em></div>
+  <div class="paper-links">
+    <a href="ProjectProposalML_AALEKHBUKHARIYA.pdf">proposal pdf</a>
+    <a href="#">code (coming soon)</a>
+  </div>
+
+  <hr>
+
+  <div class="abstract-box">
+    <div class="label">Abstract</div>
+    <p>
+      Post-training methods for LLMs have been observed to exhibit lower diversity
+in generated responses, as they average out human values across tasks such as
+poetry writing, humor, and political leanings etc[Sorensen et al., 2024]. Pluralistic
+alignment methods have been proposed as a solution to this limitation of LLM post
+training Methods, as they help LLMs incorporate diverse human values. Modular
+Pluralism is one such method proposed by [Feng et al., 2024]. It trains separate
+community language models using Low-Rank Adaptation (LoRA)[Hu et al., 2022].
+Although it is a lightweight method, it is computationally expensive when the
+number of communities is large. We propose a framework that replaces Low-Rank
+Adaptation with PrefixMemoryTuning, a lightweight fine-tuning method proposed
+by [Wang et al., 2026]. We evaluate our method across three pluralistic infer
+ence modes: Overton, steerable, and distributional, and directly compare against
+Modular Pluralism on both quality and efficiency metrics. We also benchmark
+against state-of-the-art models using the INFINITY CHAT dataset from the Artificial Hivemind study [Jiang et al., 2025] to assess whether steerable Pluralism
+can solve the Artificial Hivemind Problem in LLMs. Results could demonstrate if
+PrefixMemory-Tuning achieves competitive pluralistic alignment with significantly
+lower computational requirements, offering a scalable path toward diverse LLM
+responses.
+    </p>
+  </div>
+
+  <hr>
+
+  <h2>References</h2>
+  <ul class="ref-list">
+    <li>
+      Shangbin Feng, Taylor Sorensen, Yuhan Liu, Jillian Fisher, Chan Young Park, Yejin Choi, and Yulia Tsvetkov.
+      Modular pluralism: Pluralistic alignment via multi-LLM collaboration.
+      <em>EMNLP 2024.</em>
+      <a href="https://aclanthology.org/2024.emnlp-main.240/">aclanthology</a>
+    </li>
+    <li>
+      Liwei Jiang, Yuanjun Chai, Margaret Li, et al.
+      Artificial hivemind: The open-ended homogeneity of language models (and beyond).
+      <em>NeurIPS 2025 Datasets and Benchmarks Track.</em>
+      <a href="https://openreview.net/forum?id=saDOrrnNTz">openreview</a>
+    </li>
+    <li>
+      Xiang Lisa Li and Percy Liang.
+      Prefix-tuning: Optimizing continuous prompts for generation.
+      <em>ACL 2021.</em>
+      <a href="https://aclanthology.org/2021.acl-long.353/">aclanthology</a>
+    </li>
+    <li>
+      Taylor Sorensen, Jared Moore, Jillian Fisher, et al.
+      Position: A roadmap to pluralistic alignment.
+      <em>ICML 2024.</em>
+    </li>
+    <li>
+      Haonan Wang, Brian K Chen, Siquan Li, et al.
+      PrefixMemory-Tuning: Modernizing prefix-tuning by decoupling the prefix from attention.
+      <em>ICLR 2026.</em>
+      <a href="https://openreview.net/forum?id=LvUMpZE44r">openreview</a>
+    </li>
+    <li>
+      Edward J. Hu, Yelong Shen, Phillip Wallis, et al.
+      LoRA: Low-rank adaptation of large language models.
+      <em>ICLR 2022.</em>
+      <a href="https://openreview.net/forum?id=nZeVKeeFYf9">openreview</a>
+    </li>
+  </ul>
+
+</div>
+</body>
+</html>
