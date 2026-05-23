@@ -244,7 +244,7 @@
       <div class="affil">Master's in Computer Science &nbsp;·&nbsp; George Washington University</div>
 
       <p>
-        Hi! I’m a master’s student at George Washington University, and my research interests include post-training and alignment of large language models, particularly how we can align LLMs to capture diverse and pluralistic human values, how we can avoid the homogeneity of responses that could arise from RLHF, and post-training more generally. I am also interested in applying deep learning to genomic sequence data. Previously, I worked with <a href="https://kahuja.profiles.iiti.ac.in/">Dr. Kapil Ahuja</a> at the Mathematics of Data Science and Simulation lab in the Indian Institute of Technology Indore on DNA Gap prediction using Deep learning.
+        Hi! I’m a master’s student at George Washington University, and I am very interested in AI safety and alignment, mechanistic interpretability, and pluralistic alignment. My research interests include post-training and alignment of large language models, particularly how we can align LLMs to capture diverse and pluralistic human values, how we can avoid the homogeneity of responses that could arise from RLHF, and post-training more generally. I am also interested in applying deep learning to genomic sequence data. Previously, I worked with <a href="https://kahuja.profiles.iiti.ac.in/">Dr. Kapil Ahuja</a> at the Mathematics of Data Science and Simulation lab in the Indian Institute of Technology Indore on DNA Gap prediction using Deep learning.
       </p>
 
       <div class="contact">
@@ -252,10 +252,10 @@
       </div>
 
       <div class="nav-links">
-        <a href="AalekhBukhariyaCV.pdf">CV</a>
+        <a href="AalekhBukhariyaCVR1.pdf">CV</a>
         <a href="https://github.com/Graviton19">GitHub</a>
-        <!-- <a href="#">Google Scholar</a>
-        <a href="#">Twitter / X</a> -->
+        <a href="https://www.linkedin.com/in/aalekh-bukhariya-9a1544215">LinkedIn</a>
+        
       </div>
     </div>
   </div>
@@ -263,34 +263,52 @@
   <hr>
 
   <!-- ── Current Research ── -->
-  <h2>Current Research</h2>
+  <h2>Research</h2>
 
   <div class="research-item">
-    <span class="rtitle">Efficient Pluralistic Alignment</span>
+    <span class="rtitle">Mitigating the Hivemind: A Comparative Study of Methods for Increasing Diversity in Open-Ended LLM Generation</span>
     <span class="rstatus">ongoing</span>
     <p>
-      Alignment techniques today produce a single policy that best represents the combined aggregate preference. The diversity of human values is reduced to a single mode. This project seeks to explore computationally efficient ways to train or steer models that can represent and operate across multiple value systems simultaneously, while mitigating the homogeneity in responses found in LLMs.
+      The artificial Hivemind effect refers to the tendency of large language models to produce semantically similar outputs for open-ended queries, limiting their usefulness in creative, pluralistic, and exploratory tasks. This project studies whether culturally grounded examples can serve as a simple inference-time mechanism for diversifying LLM generations. We compare seven interventions, from sampling-level perturbations to a full generation-selection pipeline, across open-ended creative prompts and find a sharp intervention cliff: sampling-level and adapter-level methods do not produce significant diversity gains, while prompt-level in-context learning with culturally diverse examples produces immediate and large improvements. Stacking culturally diverse few-shot examples with cross-response n-gram repulsion and DPP subset selection achieves substantial gains in semantic diversity and effective distinct responses without training, guide models, or knowledge graphs.
     </p>
     <div class="rlinks">
-      <a href="efficient_pluralism.html">abstract</a>
+      <a href="https://docs.google.com/document/d/1gSgxpVIIl-RK44Jng-pQ1tcUuHGSyC7UVlgfWkLkGQw/edit?tab=t.0#heading=h.fmaahqsrageb">writeup</a>
+      <a href="https://github.com/Graviton19/Hivemind-Ladder">code</a>
     </div>
   </div>
 
   <div class="research-item">
-    <span class="rtitle">Hallucination Geometry</span>
-    <span class="rstatus">ongoing</span>
+    <span class="rtitle">Universal Lies: A multi-method analysis of hallucinations</span>
     <p>
-      LLMs hallucinate that they produce confident, fluent, and incorrect outputs. This project takes a Representational perspective: Where in the model's internal geometry do hallucinations live? By probing activations of factual vs. hallucinated content, we aim to understand hallucination as a geometric phenomenon and derive principled interventions.
+      Hallucinations in large language models remain poorly understood at the mechanistic level. Although prior work has shown that LLMs represent the truth and falsehood of statements in hidden-state activations, these findings often rely on simple true/false factual datasets. This project studies the mechanistic origins of this separation under naturalistic hallucination-inducing settings, with particular attention to attention dynamics and individual neurons across model families. We conduct a multi-method empirical survey spanning five models across Qwen2.5, Qwen3, Llama-3.1, and Mistral using TruthfulQA as a common evaluation setting. Our findings suggest that hallucinating models attend significantly less to question-region tokens in late-layer heads, indicating a progressive decoupling from the input query before hallucinated content is produced. Hidden-state geometry shows directional separation consistent with prior work, probes trained on hidden states reach a peak AUC of 0.85 on Qwen2.5-1.5B-Instruct, and targeted ablation of hallucination-associated neurons disrupts this geometric structure, implicating them as potential contributors to hallucination-related representations.
     </p>
     <div class="rlinks">
-      <a href="hallucination_geometry.html">abstract</a>
+      <a href="https://drive.google.com/file/d/1v9dn9jSIjs6tWvVfOlHKvTC4YDpubYFR/view">paper</a>
+      <a href="https://github.com/Exterminator11/hallucinations_arc">code</a>
     </div>
   </div>
 
   <hr>
 
-  <!-- ── Projects ── -->
-  <h2>Research Experience</h2>
+  <!-- Paper Reimplementations -->
+  <h2>Paper Reimplementations</h2>
+
+  <div class="pub">
+    <div class="ptitle">Reimplementation: Internal Coherence Maximization for Persona Elicitation</div>
+    <div class="plinks">
+      <a href="https://arxiv.org/pdf/2506.10139">Original paper</a>
+      <a href="https://github.com/Graviton19/GOQA_InternalCoherenceMaximization">code</a>
+      <a href="https://docs.google.com/document/d/1FQPWnppcckl1VbQjcEz8iF4tV8vZkKf6zx63ZGmlCUE/edit?tab=t.0">Critique</a>
+    </div>
+    <div class="pabstract">
+      Reimplemented Internal Coherence Maximization (ICM), an unsupervised elicitation method that searches for label assignments that are mutually predictable and internally coherent under a pretrained model. Applied ICM to persona elicitation, where inferred labels can be used as a structured representation of a persona's values, beliefs, or preferences for guiding model behavior. Evaluated whether coherence-based elicitation recovers the target persona's values or instead reinforces pretrained model priors on culturally specific questions.
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Projects -->
+  <h2>Experience</h2>
 
   <div class="year">2025</div>
 
@@ -306,17 +324,6 @@
       In DNA sequences, after being extracted, they may contain unresolved sections, which are often replaced by ambiguous ‘N’s instead of the actual DNA bases (A, T, G, C). In this study, gap imputation is addressed using deep learning methods, including transformers and language modeling.
     </div>
   </div>
-
-  <hr>
-
-  <!-- ── Miscellaneous ── -->
-  <h2>Miscellaneous</h2>
-  <p style="font-size: 0.93rem; color: #e21212; text-align: justify;"><b>
-    I am actively looking for internships for Summer 2026 in Machine Learning Enigneering, Deep Learning,
-    and Natural Language Processing. I would also be very grateful for a research internship
-    if you are working on something related to alignment, LLM post-training, or ML for biology,
-    I would love to connect!
-  </p></b>
 
 </div>
 </body>
