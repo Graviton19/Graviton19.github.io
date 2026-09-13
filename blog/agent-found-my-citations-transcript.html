@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transcript: the citation run — Aalekh Bukhariya</title>
+<meta name="description" content="The full prompt and response from the citation-finding run described in 'The agent found my citations. Then it found my mistakes'.">
+<link rel="stylesheet" href="../blog.css">
+</head>
+<body>
+<div id="wrap">
+
+  <div class="breadcrumb">
+    <a href="../index.html">Aalekh Bukhariya</a>
+    <span>&#8250;</span>
+    <a href="../blog.html">Blog</a>
+    <span>&#8250;</span>
+    <a href="agent-found-my-citations.html">Citations</a>
+    <span>&#8250;</span>
+    Transcript
+  </div>
+
+  <h1>Transcript: the citation run</h1>
+
+  <div class="post-meta">
+    <span>Claude Code, Opus 5</span>
+    <span class="sep">&middot;</span>
+    <span>16 pages fetched, 28 commands run, 2 files read</span>
+  </div>
+
+  <p class="backlink">
+    This is the full prompt and response behind
+    <a href="agent-found-my-citations.html">The agent found my citations. Then it found my mistakes</a>.
+    Reproduced verbatim; the ten <span class="cite-marker">[CITE]</span> markers in the methods section
+    are where my original citations were stripped out.
+  </p>
+
+  <div class="turn">
+    <div class="turn-label">Prompt</div>
+
+    <div class="prompt-block">
+      <p>
+        Below is a methods section from a machine learning paper in preparation. Some places where a
+        citation belongs are marked <span class="cite-marker">[CITE]</span>; the marker does not tell
+        you who the citation is. Other claims in the text need citations but carry no marker at all.
+        Your task has two parts.
+      </p>
+
+      <ol>
+        <li>For each <span class="cite-marker">[CITE]</span> marker, identify the specific work the authors are pointing to.</li>
+        <li>Separately, identify every other claim, method, dataset, model, or result in the text that requires a citation and currently has none.</li>
+      </ol>
+
+      <p>For each citation you propose, report:</p>
+
+      <ul>
+        <li>the claim it supports, quoted from the text</li>
+        <li>title, all authors, year</li>
+        <li>venue, or arXiv ID, or URL for non-archival sources</li>
+        <li>the specific section, figure, or page of the cited work</li>
+        <li>a short passage from the cited work that supports that specific claim</li>
+        <li>your confidence that this is the correct source, as high / medium / low</li>
+      </ul>
+
+      <p>
+        Open every source and confirm the passage before you report it. Do not report a citation for a
+        work you have not opened. If you cannot find a source for a claim, or cannot confirm a passage,
+        say so explicitly and leave the entry incomplete rather than supplying your best guess. An
+        incomplete answer is more useful to me than a confident wrong one.
+      </p>
+
+      <p>
+        Finally, list separately any claim where you found a candidate source but are not confident the
+        source actually supports the claim as stated.
+      </p>
+
+      <h3>Motivation</h3>
+      <p>
+        This research is motivated by the pitfalls of ICM. During ICM, mutual predictability(MP) is
+        calculated at each iteration, rescoring all labels based on the updated context; this computes
+        the exact MP, but a single iteration takes n (number of claims) API calls, and over n iterations
+        this reaches a worst-case of O(n^2). Context also grows with n, increasing the cost. Discussing
+        different baseline techniques, <span class="cite-marker">[CITE]</span> describes the difficulties
+        in reproducing ICM and how running ICM on 4 H200s takes hours; this incurs a high compute cost,
+        so we try to solve efficiency and reproducibility issues with a new method by exploiting MP
+        without explicitly maximizing it, at a linear cost rather than quadratic.
+      </p>
+
+      <h3>Approach</h3>
+      <p>
+        <span class="cite-marker">[CITE]</span> shows that ICM, simple bootstrap, and debate are all
+        instances of coherence maximization. ICM&rsquo;s MP conditions each label on all others, while a
+        similar approach could condition autoregressively on predecessors only. This bidirectional term
+        is what makes ICM expensive; <span class="cite-marker">[CITE]</span> also describes Gibbs
+        sampling, i.e. repeatedly resampling one label conditioned on the rest; this converges to a
+        distribution concentrated on high-coherence labelings. Our method builds directly on this theory:
+        we use an autoregressive pass to obtain a high-coherence labeling cheaply, followed by greedy
+        refinement using an approximation of MP as the optimization objective, to recover what the
+        autoregressive sampling lost.
+      </p>
+      <p>
+        <strong>Logical Consistency:</strong> Consistency is defined over groups of claims sharing a
+        consistency_id, and we enforce it as a hard constraint rather than a penalty, So, both phases
+        will only emit labellings which are possible under the particular consistency rule of a
+        particular dataset, So decisions are made per group rather than per claim, Phase 1 labels a whole
+        group at once, Phase 2 proposes moves between the elements of the consistency group. Our
+        consistency fix is stricter than in ICM, or baseline methods from
+        <span class="cite-marker">[CITE]</span>, as ICM treats consistency as a soft penalty, so
+        inconsistent labellings remain reachable and are repaired by a ConsistencyFix routine.
+        <span class="cite-marker">[CITE]</span> enforce consistency as a hard constraint but apply it
+        after bootstrap iterations. In our method there is nothing to repair, as the inconsistencies are
+        never reached. All three methods end up with consistent labels, so consistency itself is not what
+        separates them. The real question is which feasible labelling each one picks. For a group with
+        more than one feasible option, something has to choose. ICM chooses by MP: its repair routine
+        enumerates the consistent options and takes whichever maximizes the scoring function.
+        <span class="cite-marker">[CITE]</span> choose by confidence alone: the highest-scoring claim in
+        the group wins and the remaining labels follow from it, with MP playing no role. We use both, in
+        sequence. Phase 1 chooses by confidence, as they do. Phase 2 can then move a group to a different
+        feasible labelling when that raises MP. Our constraint is the strictest of the three, since
+        infeasible labellings are never produced at all; our selection rule starts from theirs and is
+        then refined under ICM&rsquo;s objective.
+      </p>
+      <p>
+        <strong>Alpaca (pairwise preference):</strong> A group has two claims about the same pair of
+        responses: one saying the first response is more helpful and harmless, the other saying the
+        second is. Preference is antisymmetric, so exactly one of them is True, which leaves only two
+        allowed labellings, and choosing one claim as True determines the other. There is no score
+        threshold here, because one of the two must win; we simply take whichever claim the model scores
+        higher. Since every group resolves to a single choice between two options, claim-level and
+        pair-level accuracy are the same number, and random guessing scores 50%.
+      </p>
+      <p>
+        <strong>GSM8K (solution verification):</strong> A group has four candidate solutions to one math
+        question. Two rules apply: solutions that arrive at the same final numeric answer must get the
+        same label, and no more than one answer value can be True. So an allowed labelling either marks
+        every solution reaching one particular answer as True and the rest False, or marks all four
+        False, the second case meaning none of the candidates got the question right.
+      </p>
+      <p>
+        <strong>TruthfulQA:</strong> A group is all the claims about one question, split into two sets by
+        whether they are true or false. Claims in the same set always get the same label, and at most one
+        set is labelled True. Our implementation reads this split using the gold labels, same as the
+        leakage reported by <span class="cite-marker">[CITE]</span> from
+        <span class="cite-marker">[CITE]</span> to make the methods comparable.
+      </p>
+
+      <h3>Phase 1</h3>
+      <p>
+        This is an ordered autoregressive labeling pass; we label the training set in a single pass from
+        start to end, appending each labeled example to a growing context window. Each new label is
+        sampled conditioned on all the labels assigned so far. Examples are ordered by model confidence
+        described in <span class="cite-marker">[CITE]</span> so that the labels the model is most certain
+        about are labeled first, forming a strong context that can be used to label examples the model
+        finds difficult. This mirrors the accept-reject dynamics of ICM. Following this, we calculate the
+        total MP of the complete labeling that we have obtained.
+      </p>
+
+      <h3>Phase 2</h3>
+      <p>
+        Computing MP takes one model call per example, so a single exact evaluation would cost a full
+        pass over the dataset. Testing every candidate move would mean a full pass per move, which is
+        quadratic in complexity. We avoid this by proposing flips cheaply and then verifying using the
+        exact MP calculation. So, first we start with proposing flips, changing a consistency group&rsquo;s
+        labels affects MP in two ways. It changes the scores of that group&rsquo;s own claims, and it changes
+        the scores of every other claim in the dataset, because the group&rsquo;s labels sit in their context.
+        We measure only the first effect: for each allowed labelling of a group, we ask how much
+        log-probability the model assigns to those labels versus the ones currently in place, and we take
+        the move if the answer is positive. All of these comparisons are made against a single snapshot
+        of the labelling, taken at the start of the sweep. Because that context never changes mid-sweep,
+        the scores can be computed once and reused for every move we consider, so the whole sweep costs
+        one pass over the data. Second, verifying the sweep, freezing the context means every move is
+        evaluated as if it were the only one, moves are proposed in parallel rather than in sequence, so
+        none of them sees the effect of the others. Gibbs sampling, by contrast, updates one label at a
+        time and each update sees the last. Once the sweep is done, we compute MP exactly, one more full
+        pass. Phase 2 repeats, each sweep covering every example. After each sweep we recompute the exact
+        MP and compare it to the previous value: if the improvement is below three percent, we stop and
+        take the labelling from the last accepted sweep as our output. In practice this converges in a
+        small number of sweeps, so the total cost stays linear in dataset size (n).
+      </p>
+
+      <h3>Results</h3>
+      <p>
+        These are the main results and comparisons directly against ICM, we use the many shot results
+        figure 8 from <span class="cite-marker">[CITE]</span> and compare it to our method, in alpaca
+        they don&rsquo;t mention accuracy after using gold labels which we evaluate at around 67%-68% just
+        below our 69%, For TruthfulQA our number is 89.7% which is very close to the gold ceiling of
+        90.4%. The aforementioned tests and train were run on Llama 3.1 70B. For GSM 8K, we use Llama 3.1
+        8B to compare our results directly with ICM; results show our method reaches about 69%, which is
+        similar to the gold ceiling.
+      </p>
+      <p>
+        We also ran experiments using categories of TruthfulQA instead of the whole set at once. Running
+        tests after segmenting train and test labels on TruthfulQA by category gives an aggregate test
+        accuracy of 88%. An interesting result was that when we used the complete train label set after
+        regrouping all labels (after training separately for each category) and then tested on the whole
+        test set as many-shot, we got a test accuracy of 89.4%, similar to the result on the whole set.
+      </p>
+
+      <h3>Other Experiments</h3>
+      <p>
+        We did other experiments like which labels to select for few shot prompting, based on confidence
+        scorers after the labelling, balancing true and false labels in few shot prompts, we understood a
+        few key details from here, that selecting whole questions rather than individual claims with most
+        confidence would result in better test scores, as selecting most confident labels might just be
+        making the model select a set which is skewed towards false labels, as models are most confident
+        about false claims, we then test balancing the few shot claims true and false labels, which
+        doesn&rsquo;t perform at par to selecting the most confident questions, but when we use both the
+        approaches together i.e taking the most confident and label balanced whole question we get great
+        few shot performance ie 88.3% accuracy on 64 shot.
+      </p>
+      <p>
+        We also ran experiments where the model provides reasoning along with labels in few-shot demos
+        for the test, but this doesn&rsquo;t help the labeling at all and decreases overall test accuracy.
+        Another experiment uses hints for questions the model thinks are difficult: self-hints from the
+        same base model (Llama 3.1 70B), hints from a weaker post-trained model (Llama 3.1 8B Instruct),
+        and hints from a frontier proprietary model. The frontier model improves the labels by a
+        significant margin, whereas self-hints do the worst; using the weaker post-trained model does
+        well on a small set of questions but fails by a large margin on a larger set.
+      </p>
+    </div>
+  </div>
+
+  <div class="turn">
+    <div class="turn-label">Response</div>
+
+    <p>I&rsquo;ll research this. Let me load web tools first.</p>
+
+    <p>I opened and read every source below. Here is what I found.</p>
+
+    <h2>Sources actually opened</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Work</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Wen et al. 2025</strong></td>
+            <td><em>Unsupervised Elicitation of Language Models</em> &mdash; arXiv:2506.10139v1 (full HTML + Figures 3 and 8 images)</td>
+          </tr>
+          <tr>
+            <td><strong>Canavan et al. 2026</strong></td>
+            <td><em>Eliciting base models with simple unsupervised techniques</em> &mdash; LessWrong, 23 Jan 2026 (full text via LW API)</td>
+          </tr>
+          <tr>
+            <td><strong>Qiu et al. 2026</strong></td>
+            <td><em>Self-Improvement as Coherence Optimization: A Theoretical Account</em> &mdash; arXiv:2601.13566v1 (full HTML)</td>
+          </tr>
+          <tr>
+            <td>Lin et al. 2022, Cobbe et al. 2021, Taori et al. 2023, Dubois et al. 2023, Grattafiori et al. 2024, Zhao et al. 2021, Min et al. 2022, Agarwal et al. 2024, Wei et al. 2022</td>
+            <td>see below</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Full bibliographic details for the three central works:</p>
+
+    <ul>
+      <li>
+        <strong>Wen, Jiaxin; Ankner, Zachary; Somani, Arushi; Hase, Peter; Marks, Samuel;
+        Goldman-Wetzler, Jacob; Petrini, Linda; Sleight, Henry; Burns, Collin; He, He; Feng, Shi;
+        Perez, Ethan; Leike, Jan</strong> (2025). <em>Unsupervised Elicitation of Language Models.</em>
+        arXiv:2506.10139 [cs.CL], 11 Jun 2025. (An OpenReview forum exists at
+        <code>openreview.net/forum?id=6PTdDAgakU</code>, but OpenReview blocked my requests with a
+        challenge page, so <strong>I could not confirm a published venue</strong> &mdash; cite the arXiv
+        ID unless you verify otherwise.)
+      </li>
+      <li>
+        <strong>Canavan, Callum; Shrivastava, Aditya; Qi, Allison; Qiu, Tianyi Alex; Michala, Jonathan;
+        Roger, Fabien</strong> (2026). <em>Eliciting base models with simple unsupervised techniques.</em>
+        LessWrong, 23 Jan 2026.
+        <a href="https://www.lesswrong.com/posts/rFxfMbwJ3v4PNesWP/eliciting-base-models-with-simple-unsupervised-techniques">lesswrong.com</a>
+        (byline: &ldquo;Aditya Shrivastava*, Allison Qi*, Callum Canavan*, Tianyi Alex Qiu, Jonathan Michala,
+        Fabien Roger* &mdash; <em>Equal contributions, reverse alphabetical</em>&rdquo;; Qiu et al. cite it as
+        &ldquo;Canavan et al. (2026)&rdquo;). Non-archival.
+      </li>
+      <li>
+        <strong>Qiu, Tianyi; Ismail, Ahmed Hani; He, Zhonghao; Feng, Shi</strong> (2026).
+        <em>Self-Improvement as Coherence Optimization: A Theoretical Account.</em> arXiv:2601.13566
+        [cs.LG], 20 Jan 2026.
+      </li>
+    </ul>
+
+    <hr>
+
+    <h2>Part 1 &mdash; The ten <span class="cite-marker">[CITE]</span> markers</h2>
+
+    <h3>1. Motivation &mdash; reproducibility and H200 cost</h3>
+    <blockquote>
+      <p>&ldquo;Discussing different baseline techniques, <strong>[CITE]</strong> describes the difficulties in reproducing ICM and how running ICM on 4 H200s takes hours&rdquo;</p>
+    </blockquote>
+    <p><strong>Canavan et al. 2026.</strong> Appendix D, &ldquo;Difficulty reproducing ICM.&rdquo;</p>
+    <blockquote>
+      <p>&ldquo;We tried using the official repo for ICM by Wen et al. to reproduce their results on the Alpaca and Gender datasets. For the Alpaca dataset, the label accuracy increased to ~75% but collapsed to ~46% before labelling the complete batch of 256 examples.&rdquo;</p>
+      <p>&ldquo;This matches our experience, where running ICM with Llama-3.1-70B on 256 data points with 4 H200s takes hours. In contrast, our simple baselines are all O(n)&hellip;&rdquo;</p>
+    </blockquote>
+    <p><strong>Confidence: high.</strong></p>
+
+    <h3>2. Motivation (adjacent, same marker&rsquo;s paragraph) &mdash; the O(n&sup2;) claim</h3>
+    <blockquote>
+      <p>&ldquo;a single iteration takes n (number of claims) API calls, and over n iterations this reaches a worst-case of O(n^2)&rdquo;</p>
+    </blockquote>
+    <p><strong>Canavan et al. 2026</strong>, Appendix D:</p>
+    <blockquote>
+      <p>&ldquo;One iteration of the ICM algorithm (i.e. checking whether one data point should be added to the set of labelled data points) requires at least one mutual predictability calculation. Since a mutual predictability calculation requires one forward pass for every data point in the labelled set, the average number of forward passes required per data point is at least ~n/2&hellip; This means the total number of forward passes is O(n^2).&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Confidence: high</strong> &mdash; but see the caveat in Part 3: Wen et al.&rsquo;s own Appendix B,
+      Table 3 reports &ldquo;2 to 3 forward passes&rdquo; per datapoint, so this is a contested number and should be
+      attributed to Canavan et al. explicitly, not stated as a fact about ICM.
+    </p>
+
+    <h3>3. Approach &mdash; ICM, bootstrap and debate as coherence maximization</h3>
+    <blockquote>
+      <p>&ldquo;<strong>[CITE]</strong> shows that ICM, simple bootstrap, and debate are all instances of coherence maximization.&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Qiu et al. 2026.</strong> Abstract and &sect;1 (contributions); formalised in &sect;4.2
+      (&ldquo;Reductions from Existing Methods of Self-Improvement&rdquo;), Propositions 4.3 and 4.4.
+    </p>
+    <blockquote>
+      <p>Abstract: &ldquo;Methods such as debate, bootstrap, and internal coherence maximization achieve this surprising feat&hellip; We show that they are all special cases of coherence optimization.&rdquo;</p>
+      <p>&sect;1: &ldquo;We show that debate, bootstrap, and ICM are all special cases of coherence optimization.&rdquo;</p>
+      <p>&sect;6 (Conclusion): &ldquo;We showed that state-of-the-art methods (debate, bootstrap, ICM) are instances of coherence optimization.&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Confidence: high.</strong> One wording note: the paper says <em>coherence
+      <strong>optimization</strong></em>, and it explicitly distinguishes its objective from ICM&rsquo;s
+      &ldquo;internal coherence maximization&rdquo; &mdash; consider matching their term.
+    </p>
+
+    <h3>4. Approach &mdash; bidirectional vs. autoregressive conditioning</h3>
+    <blockquote>
+      <p>&ldquo;ICM&rsquo;s MP conditions each label on all others, while a similar approach could condition autoregressively on predecessors only. This bidirectional term is what makes ICM expensive&rdquo;</p>
+    </blockquote>
+    <p><strong>Qiu et al. 2026</strong>, &sect;4.2, &ldquo;Internal Coherence Maximization&rdquo; paragraph:</p>
+    <blockquote>
+      <p>&ldquo;The difference is that coherence uses autoregressive conditioning (m&lt;n) while mutual predictability uses bidirectional conditioning (m&ne;n). Bidirectional conditioning is more expensive to compute, which is why ICM is restricted to domains with few discrete responses (e.g., multiple-choice questions), while Gibbs sampling over coherence scales to open-ended generation.&rdquo;</p>
+    </blockquote>
+    <p><strong>Confidence: high.</strong> (Currently unmarked in your text; it belongs with marker 3.)</p>
+
+    <h3>5. Approach &mdash; Gibbs sampling</h3>
+    <blockquote>
+      <p>&ldquo;<strong>[CITE]</strong> also describes Gibbs sampling, i.e. repeatedly resampling one label conditioned on the rest; this converges to a distribution concentrated on high-coherence labelings.&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Qiu et al. 2026.</strong> &sect;4.1 (&ldquo;Gibbs Sampling for Coherence Optimization&rdquo;),
+      Algorithm 1, Theorem 4.2. Summarised in &sect;1:
+    </p>
+    <blockquote>
+      <p>&ldquo;The algorithm repeatedly (i) selects a context, (ii) resamples its behavior conditioned on all other current behaviors, and (iii) updates the d-policy. Under mild conditions, this converges to a distribution concentrated on high-coherence d-policies (Theorem 4.2).&rdquo;</p>
+      <p>Theorem 4.2 (Gibbs Sampling Recovers Softmax Over Coherence): &ldquo;For ergodic learning system&hellip; when N&rarr;+&infin;, we have, for Algorithm 1, &pi;_r &rarr;^d X^&beta;, where r&sim;Unif({0,&ctdot;,N}).&rdquo;</p>
+    </blockquote>
+    <p><strong>Confidence: high.</strong></p>
+
+    <h3>6. Logical Consistency &mdash; &ldquo;baseline methods from [CITE]&rdquo;</h3>
+    <blockquote>
+      <p>&ldquo;Our consistency fix is stricter than in ICM, or baseline methods from <strong>[CITE]</strong>&rdquo;</p>
+    </blockquote>
+    <p><strong>Canavan et al. 2026</strong>, &sect;&ldquo;Enforcing consistency of predictions&rdquo; and Appendix B.</p>
+    <blockquote>
+      <p>&ldquo;In the 4 datasets used here, data points have identifiers indicating what combinations of true and false labels are logically possible.&rdquo;</p>
+    </blockquote>
+    <p><strong>Confidence: high.</strong></p>
+
+    <h3>7. Logical Consistency &mdash; hard constraint applied after bootstrap iterations</h3>
+    <blockquote>
+      <p>&ldquo;<strong>[CITE]</strong> enforce consistency as a hard constraint but apply it after bootstrap iterations.&rdquo;</p>
+    </blockquote>
+    <p><strong>Canavan et al. 2026</strong>, &sect;&ldquo;Enforcing consistency of predictions&rdquo;:</p>
+    <blockquote>
+      <p>&ldquo;However, we can enforce consistency of training set predictions between iterations of bootstrapping, and prior to gradient steps during fine-tuning.&rdquo;</p>
+    </blockquote>
+    <p>
+      and the legend in &sect;&ldquo;Results summary&rdquo;: &ldquo;<strong>Consistent Bootstrap (2+4):</strong> Enforce
+      logical consistency of predictions after each iteration of Bootstrap.&rdquo;
+    </p>
+    <p><strong>Confidence: high.</strong></p>
+
+    <h3>8. Logical Consistency &mdash; choosing by confidence alone</h3>
+    <blockquote>
+      <p>&ldquo;<strong>[CITE]</strong> choose by confidence alone: the highest-scoring claim in the group wins and the remaining labels follow from it, with MP playing no role.&rdquo;</p>
+    </blockquote>
+    <p><strong>Canavan et al. 2026</strong>, Appendix B (&ldquo;Enforcing label consistency&rdquo;):</p>
+    <blockquote>
+      <p>Alpaca: &ldquo;we assign a label of true to the prompt given the highest truth score by the model, and false to the other.&rdquo;</p>
+      <p>GSM8K: &ldquo;for each question, identifying the candidate solution which was given the highest truth score by the model, and if its truth score is above 0, assigning true to that solution and to all other solutions with the same numeric answer, and false to any remaining solutions to that question.&rdquo;</p>
+      <p>TruthfulQA: &ldquo;for each question we assign true to the group of answers with the highest maximum truth score and false to all the other answers (assuming the maximum is above 0&hellip;).&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Confidence: high.</strong> The &ldquo;with MP playing no role&rdquo; half is supported by their
+      &sect;&ldquo;Results summary&rdquo;: &ldquo;We created simple algorithms based on combinations of these components
+      <strong>excluding mutual predictability</strong>.&rdquo;
+    </p>
+
+    <h3>9. TruthfulQA &mdash; &ldquo;the leakage reported by [CITE]&rdquo;</h3>
+    <p><strong>Canavan et al. 2026</strong>, Appendix C (&ldquo;TruthfulQA dataset leakage&rdquo;):</p>
+    <blockquote>
+      <p>&ldquo;For TruthfulQA, consistency is based on the ground truth labels themselves. Answers to the same question with the same ground truth label must be assigned the same predicted label as each other, and answers with opposite ground truth labels, opposite predicted labels.&rdquo; (Appendix B)</p>
+      <p>&ldquo;Therefore if any response to a given question is blatantly True or False to the LLM, enforcing consistency might force predictions for the other responses to also be correct, even if the LLM is unsure about them in isolation. This can artificially boost the model&rsquo;s accuracy.&rdquo; (Appendix C)</p>
+    </blockquote>
+    <p><strong>Confidence: high.</strong></p>
+
+    <h3>10. TruthfulQA &mdash; &ldquo;&hellip;from [CITE]&rdquo; (whose scheme it is)</h3>
+    <p>
+      <strong>Wen et al. 2025</strong> &mdash; <em>but only indirectly.</em> Canavan et al. attribute the
+      scheme to Wen et al. in Appendix B:
+    </p>
+    <blockquote>
+      <p>&ldquo;This can lead to leakage, but it is the consistency scheme used in the Wen et al. so we adopt it here as well for comparison.&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>I could not confirm this from Wen et al. themselves.</strong> I read the full arXiv HTML of
+      2506.10139v1; &sect;2.2 gives only two consistency examples &mdash; the GSM8K same-final-answer rule
+      and the comparative asymmetry rule &mdash; and never states a TruthfulQA consistency function
+      anywhere in the paper or appendices. The dataset files live behind a Google Drive link in the ICM
+      repo, which I did not open.
+    </p>
+    <p>
+      <strong>Confidence: medium.</strong> Safe phrasing: &ldquo;&hellip;the scheme Canavan et al. (2026)
+      attribute to Wen et al. (2025).&rdquo;
+    </p>
+
+    <h3>11. Phase 1 &mdash; the confidence ordering</h3>
+    <blockquote>
+      <p>&ldquo;Examples are ordered by model confidence described in <strong>[CITE]</strong>&rdquo;</p>
+    </blockquote>
+    <p><strong>Canavan et al. 2026</strong>, &sect;&ldquo;Bootstrapping on confident predictions&rdquo;:</p>
+    <blockquote>
+      <p>&ldquo;We defined confidence as logit(True) &minus; logit(False) for True predictions and logit(False) &minus; logit(True) for False predictions.&rdquo;</p>
+      <p>&ldquo;We hypothesized that the ICM rejection condition allows the model to label easy questions first before moving onto hard questions; labelling progressively more difficult examples may be more instructive to the model than labelling in a random order.&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Confidence: high.</strong> The second sentence also supports your &ldquo;so that the labels the
+      model is most certain about are labeled first, forming a strong context.&rdquo;
+    </p>
+
+    <h3>12. Results &mdash; &ldquo;the many shot results figure 8 from [CITE]&rdquo;</h3>
+    <p><strong>Wen et al. 2025</strong>, &sect;5 (&ldquo;Comparing to randomly perturbed labels&rdquo;), Figure 8.</p>
+    <blockquote>
+      <p>&ldquo;we construct a set of randomly perturbed labels with the same accuracy as our model-generated labels, and conduct ablation studies with Llama pretrained models with many-shot prompting. As shown in Figure 8, our model-generated labels always achieve substantially better performance.&rdquo;</p>
+      <p>Figure 8 caption: &ldquo;ICM-produced labels outperform equally accurate randomly perturbed labels.&rdquo;</p>
+    </blockquote>
+    <p>
+      I rendered the figure image (<code>2506.10139v1/figures/perturb.png</code>) to check it. It is a
+      three-panel bar chart &mdash; GSM8K-verification, TruthfulQA, Alpaca &mdash; with legend <em>Golden /
+      Human / Unsupervised (Ours) / Perturb</em>. <strong>The Alpaca panel has no Golden bar</strong> (only
+      Human &asymp;57.5, Ours &asymp;62.4, Perturb &asymp;52.8), which directly corroborates your sentence
+      &ldquo;in alpaca they don&rsquo;t mention accuracy after using gold labels.&rdquo;
+    </p>
+    <p><strong>Confidence: high</strong> for the identification. See Part 3 for a problem with the numbers you draw from it.</p>
+
+    <hr>
+
+    <h2>Part 2 &mdash; Claims with no marker that need one</h2>
+
+    <h3>Motivation</h3>
+    <p>
+      <strong>&ldquo;During ICM, mutual predictability(MP) is calculated at each iteration, rescoring all
+      labels based on the updated context; this computes the exact MP&rdquo;</strong><br>
+      &rarr; <strong>Wen et al. 2025</strong>, &sect;2.2 (&ldquo;Mutual Predictability&rdquo;) and &sect;2.3,
+      Algorithm 1.
+    </p>
+    <blockquote>
+      <p>&ldquo;For each example x_i, we calculate the probability of its label y_i by putting all other N&minus;1 labels in the context, and sum the log probabilities across all examples: &#119979;_&theta;(D)=&sum;_{i=0}^{N} log P_&theta;(y_i | x_i, D&setminus;(x_i,y_i))&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Confidence: high.</strong> (ICM is named three times in this paragraph before its first
+      citation appears; the method itself needs a citation at first mention.)
+    </p>
+
+    <h3>Approach / Logical Consistency</h3>
+    <p>
+      <strong>&ldquo;ICM treats consistency as a soft penalty, so inconsistent labellings remain reachable
+      and are repaired by a ConsistencyFix routine.&rdquo;</strong><br>
+      &rarr; <strong>Wen et al. 2025</strong>, &sect;2.2 (&ldquo;Overall Scoring Function&rdquo;) and &sect;2.3
+      (&ldquo;Fix Inconsistencies&rdquo;, Algorithm 2).
+    </p>
+    <blockquote>
+      <p>&ldquo;U(D) = &alpha; &middot; &#119979;_&theta;(D) &minus; &#8492;(D), where &alpha; is a hyperparameter to balance the strength of mutual predictability and logical consistency.&rdquo;</p>
+      <p>&ldquo;Although U(D) explicitly penalizes logical inconsistencies, simply maximizing U(D) during search still results in substantial label inconsistencies. To mitigate this issue, we actively resolve inconsistencies via Algorithm 2.&rdquo;</p>
+    </blockquote>
+    <p><strong>Confidence: high.</strong></p>
+
+    <p>
+      <strong>&ldquo;ICM chooses by MP: its repair routine enumerates the consistent options and takes
+      whichever maximizes the scoring function.&rdquo;</strong><br>
+      &rarr; <strong>Wen et al. 2025</strong>, Algorithm 2 (ConsistencyFix), lines 6&ndash;9, and &sect;2.3.
+    </p>
+    <blockquote>
+      <p>Algorithm 2, line 6&ndash;7: &ldquo;Enumerate consistent label options {(y_i,y_j)} &hellip; (&#375;_i, &#375;_j) = arg max_{(y_i,y_j)} U(D &cup; {(x_i,y_i),(x_j,y_j)})&rdquo;</p>
+      <p>&ldquo;when an inconsistency between a labeled data pair (x_i, x_j) arises, the algorithm checks all consistent label options for them and selects the combination that maximizes U(D).&rdquo;</p>
+    </blockquote>
+    <p><strong>Confidence: high.</strong></p>
+
+    <p>
+      <strong>&ldquo;Preference is antisymmetric, so exactly one of them is True&rdquo; (Alpaca group rule)</strong><br>
+      &rarr; <strong>Wen et al. 2025</strong>, &sect;2.2 (&ldquo;Logical Consistency&rdquo;).
+    </p>
+    <blockquote>
+      <p>&ldquo;Another general, task-agnostic logical constraint that we use for comparative datasets is asymmetry: when comparing two responses A and B, two claims &lsquo;A&gt;B&rsquo; and &lsquo;B&gt;A&rsquo; cannot be both labeled &lsquo;True&rsquo;.&rdquo;</p>
+    </blockquote>
+    <p><strong>Confidence: high.</strong></p>
+
+    <p>
+      <strong>&ldquo;A group has four candidate solutions to one math question. Two rules apply: solutions
+      that arrive at the same final numeric answer must get the same label, and no more than one answer
+      value can be True.&rdquo;</strong><br>
+      &rarr; <strong>Wen et al. 2025</strong>, &sect;2.2 for the half-rule:
+    </p>
+    <blockquote>
+      <p>&ldquo;when judging mathematical correctness, two solutions to the same math problem cannot be both labeled &lsquo;True&rsquo; if their final answers are different.&rdquo;</p>
+    </blockquote>
+    <p>&rarr; <strong>Canavan et al. 2026</strong>, Appendix B for the full two-part rule as you state it:</p>
+    <blockquote>
+      <p>&ldquo;if two solutions propose different numerical answers, then at most one of them can be labelled true, and if two solutions propose the same answer, either both are true or both are false.&rdquo;</p>
+    </blockquote>
+    <p><strong>Confidence: high</strong> for both.</p>
+
+    <h3>Datasets and models (none currently cited)</h3>
+
+    <p>
+      <strong>TruthfulQA</strong> &rarr; <strong>Lin, Stephanie; Hilton, Jacob; Evans, Owain</strong>
+      (2022). <em>TruthfulQA: Measuring How Models Mimic Human Falsehoods.</em> ACL 2022;
+      <a href="https://arxiv.org/abs/2109.07958">arXiv:2109.07958</a>. Abstract / &sect;1:
+    </p>
+    <blockquote>
+      <p>&ldquo;We crafted questions that some humans would answer falsely due to a false belief or misconception.&rdquo; &mdash; 817 questions across 38 categories.</p>
+    </blockquote>
+    <p><strong>Confidence: high.</strong></p>
+
+    <p>
+      <strong>GSM8K</strong> &rarr; <strong>Cobbe, Karl; Kosaraju, Vineet; Bavarian, Mohammad; Chen,
+      Mark; Jun, Heewoo; Kaiser, Lukasz; Plappert, Matthias; Tworek, Jerry; Hilton, Jacob; Nakano,
+      Reiichiro; Hesse, Christopher; Schulman, John</strong> (2021). <em>Training Verifiers to Solve Math
+      Word Problems.</em> <a href="https://arxiv.org/abs/2110.14168">arXiv:2110.14168</a>. Abstract:
+    </p>
+    <blockquote>
+      <p>&ldquo;we introduce GSM8K, a dataset of 8.5K high quality linguistically diverse grade school math word problems.&rdquo;</p>
+      <p>&ldquo;we propose training verifiers to judge the correctness of model completions. At test time, we generate many candidate solutions and select the one ranked highest by the verifier.&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Confidence: high</strong> (this is also the right citation for the &ldquo;solution
+      verification&rdquo; framing and the multiple-candidate-solutions setup). Note the
+      <em>GSM8K-verification</em> variant itself &mdash; sampling multiple solutions and grading
+      intermediate steps with Claude 3.5 Sonnet &mdash; is Wen et al.&rsquo;s construction (&sect;3.1), so cite
+      both.
+    </p>
+
+    <p>
+      <strong>Llama 3.1 70B / 8B / 8B Instruct</strong> &rarr; <strong>Grattafiori, Aaron; et al. (Llama
+      Team, AI @ Meta)</strong> (2024). <em>The Llama 3 Herd of Models.</em>
+      <a href="https://arxiv.org/abs/2407.21783">arXiv:2407.21783</a>. &sect;1:
+    </p>
+    <blockquote>
+      <p>&ldquo;The result of our work is Llama 3: a herd of three multilingual language models with 8B, 70B, and 405B parameters.&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Confidence: high</strong> for the model family. Minor nuance: the paper is titled &ldquo;Llama 3&rdquo;
+      and covers the checkpoints Meta released as Llama 3.1; the arXiv listing is &ldquo;Aaron Grattafiori,
+      Abhimanyu Dubey, Abhinav Jauhri, and 558 other authors,&rdquo; so an <code>et al.</code> citation is
+      standard.
+    </p>
+
+    <p>
+      <strong>Alpaca (pairwise preference)</strong> &rarr; Wen et al. cite <strong>Taori, Rohan;
+      Gulrajani, Ishaan; Zhang, Tianyi; Dubois, Yann; Li, Xuechen; Guestrin, Carlos; Liang, Percy;
+      Hashimoto, Tatsunori B.</strong> (2023), <em>Alpaca: A Strong, Replicable Instruction-Following
+      Model</em>, Stanford CRFM blog (their reference [28]). <strong>I opened it and it does not contain
+      pairwise helpfulness/harmlessness preference annotations</strong> &mdash; it describes 52K
+      self-instruct demonstrations. See Part 3.
+    </p>
+
+    <h3>Method-level claims</h3>
+
+    <p>
+      <strong>&ldquo;This is an ordered autoregressive labeling pass; we label the training set in a single
+      pass&hellip; appending each labeled example to a growing context window.&rdquo;</strong><br>
+      &rarr; <strong>Qiu et al. 2026</strong>, &sect;4.2 (&ldquo;Simple Bootstrap&rdquo;), Proposition 4.4:
+    </p>
+    <blockquote>
+      <p>&ldquo;Simple bootstrap can be seen as an approximation of Gibbs sampling where history accumulates rather than being replaced. Instead of maintaining a fixed-size d-policy and resampling components, simple bootstrap sequentially generates behaviors a_1, a_2, a_3, &hellip;, where the context for generating a_n is the entire preceding sequence.&rdquo;</p>
+    </blockquote>
+    <p>
+      Also <strong>Canavan et al. 2026</strong>, &sect;&ldquo;Bootstrapping few-shot predictions,&rdquo; for the
+      empirical version. <strong>Confidence: high.</strong>
+    </p>
+
+    <p>
+      <strong>&ldquo;This mirrors the accept-reject dynamics of ICM.&rdquo;</strong><br>
+      &rarr; <strong>Wen et al. 2025</strong>, &sect;2.3 (&ldquo;Accept a New Label&rdquo;), Algorithm 1 lines
+      11&ndash;18:
+    </p>
+    <blockquote>
+      <p>&ldquo;We directly accept the new label if it improves U(D). Otherwise, inspired by simulated annealing, the algorithm rejects it by a probability decided by two factors: Score Difference &Delta;&hellip; [and] Iteration.&rdquo;</p>
+    </blockquote>
+    <p><strong>Confidence: high.</strong></p>
+
+    <p>
+      <strong>&ldquo;Gibbs sampling, by contrast, updates one label at a time and each update sees the
+      last.&rdquo;</strong><br>
+      &rarr; <strong>Qiu et al. 2026</strong>, &sect;4.1, Algorithm 1 (same passage as marker 5).
+      <strong>Confidence: high.</strong>
+    </p>
+
+    <p>
+      <strong>&ldquo;many-shot&rdquo;</strong> (used throughout Results and Other Experiments without
+      definition)<br>
+      &rarr; <strong>Agarwal, Rishabh; Singh, Avi; Zhang, Lei M.; Bohnet, Bernd; Rosias, Luis; Chan,
+      Stephanie; Zhang, Biao; Anand, Ankesh; Abbas, Zaheer; Nova, Azade; Co-Reyes, John D.; Chu, Eric;
+      Behbahani, Feryal; Faust, Aleksandra; Larochelle, Hugo</strong> (2024). <em>Many-Shot In-Context
+      Learning.</em> NeurIPS 2024 (Spotlight);
+      <a href="https://arxiv.org/abs/2404.11018">arXiv:2404.11018</a>. Abstract:
+    </p>
+    <blockquote>
+      <p>&ldquo;hundreds or thousands of examples &mdash; the many-shot regime&hellip; Going from few-shot to many-shot, we observe significant performance gains across a wide variety of generative and discriminative tasks.&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Confidence: high</strong> for the definition; optional if your <code>many-shot</code> usage
+      is purely internal to the Wen et al. comparison.
+    </p>
+
+    <h3>Other Experiments</h3>
+
+    <p>
+      <strong>&ldquo;balancing true and false labels in few shot prompts&rdquo; / &ldquo;selecting most confident
+      labels might just be making the model select a set which is skewed towards false labels&rdquo;</strong><br>
+      &rarr; <strong>Zhao, Tony Z.; Wallace, Eric; Feng, Shi; Klein, Dan; Singh, Sameer</strong> (2021).
+      <em>Calibrate Before Use: Improving Few-Shot Performance of Language Models.</em> ICML 2021;
+      <a href="https://arxiv.org/abs/2102.09690">arXiv:2102.09690</a>. &sect;3, Figure 4 caption:
+    </p>
+    <blockquote>
+      <p>&ldquo;When the prompt is unbalanced, the predictions are unbalanced (majority label bias).&rdquo;</p>
+      <p>&sect;1: &ldquo;they suffer from majority label bias, recency bias, and common token bias&hellip; The majority label and recency biases lead the model to predict training answers that appear frequently or near the end of the prompt.&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Confidence: high</strong> &mdash; this is the standard prior work for exactly the failure
+      mode your balancing experiment fixes.
+    </p>
+
+    <p>
+      Secondary, for &ldquo;which labels to select for few shot prompting&rdquo;:<br>
+      &rarr; <strong>Min, Sewon; Lyu, Xinxi; Holtzman, Ari; Artetxe, Mikel; Lewis, Mike; Hajishirzi,
+      Hannaneh; Zettlemoyer, Luke</strong> (2022). <em>Rethinking the Role of Demonstrations: What Makes
+      In-Context Learning Work?</em> EMNLP 2022;
+      <a href="https://arxiv.org/abs/2202.12837">arXiv:2202.12837</a>. Abstract:
+    </p>
+    <blockquote>
+      <p>&ldquo;ground truth demonstrations are in fact not required &mdash; randomly replacing labels in the demonstrations barely hurts performance&rdquo;; what matters is &ldquo;(1) the label space, (2) the distribution of the input text, and (3) the overall format of the sequence.&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Confidence: high</strong> for the claim as Min et al. state it. Note Canavan et al. cite this
+      same paper for their Random Few-Shot baseline.
+    </p>
+
+    <p>
+      <strong>&ldquo;experiments where the model provides reasoning along with labels in few-shot
+      demos&rdquo;</strong><br>
+      &rarr; <strong>Wei, Jason; Wang, Xuezhi; Schuurmans, Dale; Bosma, Maarten; Ichter, Brian; Xia, Fei;
+      Chi, Ed; Le, Quoc; Zhou, Denny</strong> (2022). <em>Chain-of-Thought Prompting Elicits Reasoning in
+      Large Language Models.</em> <a href="https://arxiv.org/abs/2201.11903">arXiv:2201.11903</a>.
+      Abstract:
+    </p>
+    <blockquote>
+      <p>&ldquo;a simple method called chain of thought prompting, where a few chain of thought demonstrations are provided as exemplars in prompting.&rdquo;</p>
+    </blockquote>
+    <p>
+      <strong>Confidence: high</strong> for the method name and definition. I read the abstract page only;
+      <strong>I did not verify the published venue</strong>, so cite the arXiv ID (it is widely cited as
+      NeurIPS 2022 &mdash; confirm before using that).
+    </p>
+
+    <hr>
+
+    <h2>Part 3 &mdash; Candidates I found but cannot confirm support the claim as stated</h2>
+
+    <p>
+      <strong>1. The Alpaca preference dataset.</strong> Your Alpaca group description (two responses per
+      query, ranked by humans for helpfulness and harmlessness) matches <strong>AlpacaFarm</strong> &mdash;
+      Dubois, Yann; Li, Xuechen; Taori, Rohan; Zhang, Tianyi; Gulrajani, Ishaan; Ba, Jimmy; Guestrin,
+      Carlos; Liang, Percy; Hashimoto, Tatsunori B. (2023), <em>AlpacaFarm: A Simulation Framework for
+      Methods that Learn from Human Feedback</em>, NeurIPS 2023,
+      <a href="https://arxiv.org/abs/2305.14387">arXiv:2305.14387</a> &mdash; whose Figure 7 discussion
+      references &ldquo;the majority vote of 4 human annotators,&rdquo; lining up with Wen et al.&rsquo;s &ldquo;for Alpaca, we
+      establish test golden labels by doing majority voting over four human labels&rdquo; (&sect;3.2). But
+      <strong>Wen et al. cite Taori et al. (2023), not AlpacaFarm</strong>, and Taori et al. contains no
+      preference annotations at all. The ICM repo&rsquo;s data sits behind a Google Drive link I did not open,
+      so I cannot say which release you are actually using. <strong>Resolve by checking your own data
+      files.</strong> Confidence that AlpacaFarm is the true provenance: medium. Confidence that Taori et
+      al. supports &ldquo;ranked by humans for helpfulness and harmlessness&rdquo;: <strong>low &mdash; I opened it and
+      it does not.</strong>
+    </p>
+
+    <p>
+      <strong>2. The TruthfulQA consistency scheme attributed to Wen et al.</strong> (marker 10 above).
+      Canavan et al. say it is Wen et al.&rsquo;s scheme; Wen et al.&rsquo;s paper never states it. Medium confidence
+      &mdash; attribute via Canavan et al. rather than to Wen et al. directly.
+    </p>
+
+    <p>
+      <strong>3. Your reported gold ceilings do not match the figure you cite.</strong> This is a factual
+      problem, not a citation gap, but it will be caught in review:
+    </p>
+    <ul>
+      <li>
+        You write &ldquo;For TruthfulQA our number is 89.7% which is very close to the gold ceiling of
+        <strong>90.4%</strong>.&rdquo; In Wen et al. <strong>Figure 8</strong>, the TruthfulQA <em>Golden</em>
+        bar reads <strong>&asymp;86%</strong> (Ours &asymp;87.5%, Perturb &asymp;82%). In
+        <strong>Figure 3</strong>, Prompt-Golden for TruthfulQA is &asymp;86.5% and <em>FT</em>-Golden is
+        &asymp;92.3%. I could find no 90.4% anywhere in Wen et al.
+      </li>
+      <li>
+        You write GSM8K &ldquo;reaches about 69%, which is similar to the gold ceiling.&rdquo; Figure 8&rsquo;s GSM8K
+        Golden bar is <strong>&asymp;73.5%</strong>.
+      </li>
+      <li>
+        Your Alpaca &ldquo;67%&ndash;68%&rdquo; gold-label number is your own evaluation, which is consistent &mdash;
+        Figure 8&rsquo;s Alpaca panel genuinely has no Golden bar.
+      </li>
+    </ul>
+    <p>
+      If 90.4% is your own golden-label many-shot run rather than Wen et al.&rsquo;s, say so explicitly; as
+      written the sentence reads as though both numbers come from Figure 8.
+    </p>
+
+    <p>
+      <strong>4. The O(n&sup2;) cost claim is contested within the literature you cite.</strong> Canavan et
+      al. derive O(n&sup2;) (Appendix D), but Wen et al.&rsquo;s own Appendix B, Table 3 reports
+      <strong>2.5 / 3.9 / 2.0 average forward passes per datapoint</strong> for TruthfulQA /
+      GSM8K-verification / Alpaca, measured at n=128. Both are cited faithfully above, but your Motivation
+      states O(n&sup2;) as a property of ICM without noting that the ICM authors report otherwise.
+      Confidence that Canavan et al. support <em>their</em> claim: high. Confidence that O(n&sup2;) is
+      uncontested: low.
+    </p>
+
+    <p>
+      <strong>5. Unresolved, no source found:</strong> the &ldquo;frontier proprietary model&rdquo; used for hints is
+      unnamed in your text, so no citation can be supplied. Similarly, &ldquo;models are most confident about
+      false claims&rdquo; appears to be your own finding &mdash; Canavan et al. report the opposite-shaped result
+      (their &sect;&ldquo;Bootstrapping on confident predictions&rdquo;: &ldquo;for GSM8K and Alpaca, the most confident
+      quartile of zero-predictions are slightly more accurate than average, and for TruthfulQA they are
+      significantly more accurate&rdquo;) but say nothing about a True/False skew. <strong>I found no source for
+      the False-skew claim.</strong> If it is your own observation, state it as such; if you believe it is
+      known, it needs a source I could not locate.
+    </p>
+
+    <p>
+      <strong>6. ICM&rsquo;s publication venue.</strong> Unresolved &mdash; OpenReview returned a challenge page
+      on both the web and API endpoints. Cite arXiv:2506.10139 until you confirm.
+    </p>
+
+    <hr>
+
+    <p class="sources-line">
+      Sources:
+      <a href="https://arxiv.org/abs/2506.10139">Wen et al. 2025</a> &middot;
+      <a href="https://www.lesswrong.com/posts/rFxfMbwJ3v4PNesWP/eliciting-base-models-with-simple-unsupervised-techniques">Canavan et al. 2026</a> &middot;
+      <a href="https://arxiv.org/abs/2601.13566">Qiu et al. 2026</a> &middot;
+      <a href="https://arxiv.org/abs/2109.07958">Lin et al. 2022</a> &middot;
+      <a href="https://arxiv.org/abs/2110.14168">Cobbe et al. 2021</a> &middot;
+      <a href="https://crfm.stanford.edu/2023/03/13/alpaca.html">Taori et al. 2023</a> &middot;
+      <a href="https://arxiv.org/abs/2305.14387">Dubois et al. 2023</a> &middot;
+      <a href="https://arxiv.org/abs/2407.21783">Grattafiori et al. 2024</a> &middot;
+      <a href="https://arxiv.org/abs/2102.09690">Zhao et al. 2021</a> &middot;
+      <a href="https://arxiv.org/abs/2202.12837">Min et al. 2022</a> &middot;
+      <a href="https://arxiv.org/abs/2404.11018">Agarwal et al. 2024</a> &middot;
+      <a href="https://arxiv.org/abs/2201.11903">Wei et al. 2022</a>
+    </p>
+
+    <p class="closing-note">
+      Want me to turn this into a BibTeX file plus a marked-up copy of your methods section with citation
+      keys dropped in place?
+    </p>
+  </div>
+
+  <hr>
+
+  <p class="backlink">
+    &#8592; Back to <a href="agent-found-my-citations.html">The agent found my citations. Then it found my mistakes</a>
+  </p>
+
+</div>
+</body>
+</html>
