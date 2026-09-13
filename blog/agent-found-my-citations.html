@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The agent found my citations. Then it found my mistakes — Aalekh Bukhariya</title>
+<meta name="description" content="I stripped the citations out of my own research document and asked an agent to put them back, with a quoted passage for each. It got all ten right and found fourteen more — and the one mistake it made was the one my audit could never catch.">
+<link rel="stylesheet" href="../blog.css">
+</head>
+<body>
+<div id="wrap">
+
+  <div class="breadcrumb">
+    <a href="../index.html">Aalekh Bukhariya</a>
+    <span>&#8250;</span>
+    <a href="../blog.html">Blog</a>
+    <span>&#8250;</span>
+    Citations
+  </div>
+
+  <h1>The agent found my citations. Then it found my mistakes</h1>
+
+  <div class="post-meta">
+    <span class="author">Aalekh Bukhariya</span>
+    <span class="sep">&middot;</span>
+    <span>13 September 2026</span>
+    <span class="sep">&middot;</span>
+    <span>7 min read</span>
+  </div>
+
+  <div class="tldr">
+    <p>
+      <strong>TL;DR.</strong> I took the citations out of a document which is part of my own research
+      and asked an agent to put them back, with a quoted passage for each citation. It got all ten
+      original citations right, found fourteen more that I had missed, and every ID and quote checked
+      out when I verified them by hand.
+    </p>
+    <p>
+      The one actual mistake was a claim about what <em>wasn&rsquo;t</em> there. The agent had only checked a
+      single paper, but reported the absence as if it were a general finding. My audit was designed
+      around checking positive claims against named sources, so it was basically incapable of catching
+      the one kind of error it actually made.
+    </p>
+  </div>
+
+  <h2>Introduction</h2>
+
+  <p>
+    Presently I have been working on a few research agendas; one of the most time-consuming but
+    important tasks is finding accurate citations. I am currently working on topics adjacent to
+    Unsupervised Elicitation of Language Models: using a base model&rsquo;s pretrained knowledge to label a
+    new dataset without human supervision or ground-truth values; originally, they use an algorithm
+    called <a href="https://arxiv.org/abs/2506.10139">Internal Coherence Maximization (ICM)</a> to do
+    this. A few weeks ago, I wrote a research progress document that replaces the expensive part of
+    this algorithm more cheaply and delivers equivalent or better results. The document includes a few
+    citations that refer to the core papers my work builds on.
+  </p>
+
+  <p>
+    So, the task I want the agent to accomplish is to take my real document, with all citations
+    stripped, and then see whether it can put them back exactly without hallucinating.
+  </p>
+
+  <p>
+    I know the core work in this area that the agent might not know, and it&rsquo;ll have to search using the
+    information in the document to find the literature. So, my three core references sit at different
+    levels of findability. ICM is on arXiv and widely known; it&rsquo;s also on the Anthropic blog;
+    <a href="https://arxiv.org/abs/2601.13566">Qiu et al.</a> is an arXiv preprint accepted to TMLR.
+    And <a href="https://www.lesswrong.com/posts/rFxfMbwJ3v4PNesWP/eliciting-base-models-with-simple-unsupervised-techniques">Canavan et al.</a>
+    is a LessWrong post, no venue, a title that reads like a sentence. I also know which claims in the
+    document are mine versus which are borrowed.
+  </p>
+
+  <p>
+    Before running the agent, I thought it would surely find ICM; it would be a bit difficult to find
+    Qiu et al., but still possible, and it should be really difficult for the agent to find the
+    LessWrong post. It would fail on that and hallucinate by trying to generate a citation.
+  </p>
+
+  <h2>The task</h2>
+
+  <p>
+    To build a prompt for this problem, I needed to hide my citations but give the model enough hints
+    that it wouldn&rsquo;t go in a different direction, so citations could be evaluated against the truth I
+    have. I replaced all my citations with [CITE].
+  </p>
+
+  <p>The core of the prompt goes as:</p>
+
+  <blockquote>
+    <p>
+      <em>For each [CITE] marker, identify the specific work the authors are pointing to. [...]
+      Separately, identify every other claim, method, dataset, model, or result in the text that
+      requires a citation and currently has none.</em>
+    </p>
+    <p>
+      <em>For each citation you propose, report: the claim it supports, quoted from the text; title,
+      all authors, year; venue, or arXiv ID, or URL for non-archival sources; the specific section,
+      figure, or page of the cited work; a short passage from the cited work that supports that
+      specific claim; your confidence [...]</em>
+    </p>
+    <p>
+      <em>Open every source and confirm the passage before you report it. Do not report a citation for
+      a work you have not opened. If you cannot find a source for a claim, or cannot confirm a passage,
+      say so explicitly and leave the entry incomplete rather than supplying your best guess. An
+      incomplete answer is more useful to me than a confident wrong one.</em>
+    </p>
+  </blockquote>
+
+  <p>
+    If I ask for a citation, the agent fetches the title. Asking for the exact sentence that supports
+    the claim gives us something we can test.
+  </p>
+
+  <p>
+    You can see the full chat &mdash; the prompt as I gave it, and the agent&rsquo;s response &mdash;
+    <a href="https://claude.ai/code/session_01RQupYfaw9Di46yyjrWiRDf">here</a>.
+  </p>
+
+  <h2>What did the agent do?</h2>
+
+  <p>
+    I ran Claude Code with Opus 5 as the model. The header of the run:
+    <strong>16 pages fetched, 28 commands run (3 failed), 2 files read.</strong>
+  </p>
+
+  <p>
+    It got all ten markers right. Including Qiu et al. &mdash; <em>Self-Improvement as Coherence
+    Optimization</em>, <a href="https://arxiv.org/abs/2601.13566">arXiv:2601.13566</a>, published twenty
+    days before the LessWrong post, which I had bet against. It got Canavan et al. too, pulling the
+    full text through the LessWrong API rather than the web page, and correctly noting that the
+    citation key doesn&rsquo;t match the first author because the byline is reverse-alphabetical with equal
+    contributions. That is a genuinely subtle thing to get right.
+  </p>
+
+  <p>
+    Then it went past the assignment. Fourteen uncited claims I hadn&rsquo;t marked: TruthfulQA, GSM8K, the
+    Llama 3 herd paper, many-shot ICL for a term I use throughout without defining, and the one that
+    made me sit up: Zhao et al.&rsquo;s <em>Calibrate Before Use</em> for majority label bias, which is
+    precisely the prior work for the few-shot balancing experiment I describe as if I&rsquo;d found the
+    phenomenon myself.
+  </p>
+
+  <p>The surprise wasn&rsquo;t retrieved. It was that it pointed out some inconsistencies in results:</p>
+
+  <ul>
+    <li>
+      I write that TruthfulQA&rsquo;s gold ceiling is 90.4%. The agent reports that Figure 8&rsquo;s Golden bar
+      reads about 86%, and that 90.4% appears nowhere in Wen et al., but this is where I can correlate
+      my result with Canavan et al., who also find TruthfulQA&rsquo;s gold as around 90%.
+    </li>
+    <li>
+      I state ICM&rsquo;s cost as O(n&sup2;), citing Canavan et al. The agent points out that Wen et al.&rsquo;s own
+      Appendix B, Table 3 reports 2&ndash;4 forward passes per data point. So the model again points out
+      that I might be wrong here, but the cost is, in the worst case, O(n&sup2;).
+    </li>
+    <li>
+      It also refused to fabricate in the places it couldn&rsquo;t reach: OpenReview served it a challenge
+      page, so it declined to name a venue for the ICM paper.
+    </li>
+  </ul>
+
+  <h2>Is the agent&rsquo;s work completely correct?</h2>
+
+  <p>
+    The agent checked itself, and the check was partly real. It reported confidence per citation,
+    flagged medium confidence where its support was indirect, and separated &ldquo;found and confirmed&rdquo; from
+    &ldquo;found but unconfirmed.&rdquo; That structure is only worth something if the underlying reports are true,
+    so I checked it all by hand.
+  </p>
+
+  <p>
+    <strong>The fetch audit.</strong> The trace lists 16 fetches against 12 sources claimed as opened.
+    Every source it claimed to have read has a fetch behind it. No confirmed passage came from a
+    document it never retrieved.
+  </p>
+
+  <p>
+    <strong>The metadata.</strong> I resolved all nine arXiv IDs myself rather than following its links:
+    2601.13566, 2506.10139, 2109.07958, 2110.14168, 2407.21783, 2102.09690, 2202.12837, 2404.11018,
+    2305.14387. Every one lands on the paper it was reported in. No right-title-wrong-ID pairs, which
+    is the silent failure I most expected to find.
+  </p>
+
+  <p>
+    <strong>The passages.</strong> Literal string search in the PDFs, not paraphrase matching. Every
+    quoted passage appears in the paper it was attributed to, including the Qiu et al. Theorem 4.2
+    statement and the Canavan et al. Appendix D derivation, which carry the most weight.
+  </p>
+
+  <p>
+    So every positive claim it made is true. All ten markers are correct, fourteen additional citations
+    are correct, every quote is real, every ID is real. On the task I specified, it made no errors.
+  </p>
+
+  <p>
+    <strong>The negative result is where it actually broke.</strong> The agent&rsquo;s most consequential claim
+    was that my 90.4% appears nowhere in Wen et al. That is true. It is also the wrong question, and I
+    only know that because I know where the number came from: Canavan et al. report a TruthfulQA
+    ceiling of their own, close to 90%.
+  </p>
+
+  <p>
+    The agent had Canavan et al. open in the same session. It had already quoted four separate passages
+    from it. It searched one document for the number, didn&rsquo;t find it, and reported the absence as though
+    it had searched everywhere, then read bar heights off a PNG to corroborate a conclusion it had
+    already reached.
+  </p>
+
+  <p>
+    Nothing in the output distinguishes &ldquo;I checked every source I opened and this number is nowhere&rdquo;
+    from &ldquo;I checked the one paper this sentence cites.&rdquo; Both arrive with the same section headers and
+    the same confidence label. And a scoped-too-narrow negative is worse than a fabrication in one
+    specific way: a made-up citation dies the moment you open the paper, but a correct-but-incomplete
+    absence claim is only catchable by someone who already knows the other source exists. Opening the
+    PDF doesn&rsquo;t help. The verification procedure I designed &mdash; resolve the ID, string-match the quote
+    &mdash; has no step that would ever have caught this. It checks claimed positives against named
+    sources, and a negative names no source to check it against.
+  </p>
+
+  <p>
+    That&rsquo;s the uncomfortable result. I built a three-part audit, ran it fully, and it returned clean.
+    The one thing the agent got wrong is the one thing the audit was structurally incapable of seeing.
+  </p>
+
+  <p>
+    <strong>Where domain knowledge did the work</strong>, I can check two of the agent&rsquo;s judgments by a
+    route it doesn&rsquo;t have: my advisor is a co-author on both Wen et al. and Qiu et al.
+  </p>
+
+  <h2>Will I use this again?</h2>
+
+  <p>
+    For finding candidates, yes. It surfaced four references I should have cited but hadn&rsquo;t thought of.
+  </p>
+
+  <p>
+    For anything that ends up in a bibliography unread, though, no. And that&rsquo;s not because it
+    hallucinated. It didn&rsquo;t. The problem is more structural: an unattended run produces output with the
+    same surface-level confidence whether the underlying passages are real or not. It&rsquo;s neatly
+    formatted, sectioned, and confidence-labeled, but none of that actually tells me whether it&rsquo;s
+    correct. I trust everything in this run because I went and opened the PDFs myself.
+  </p>
+
+  <p>
+    I can see at least three things going wrong next week. A paper might be reported as absent because
+    the agent only searched in one place, and I have no visibility into where it actually looked. A
+    right-title, wrong-ID match could slip through because the link works and points to a real paper.
+    Or a real paper could get attached to a claim that it doesn&rsquo;t actually support. The second one is
+    mechanically checkable. The other two require knowing the literature, which is exactly what I was
+    trying to delegate in the first place.
+  </p>
+
+  <p>
+    I&rsquo;d be much more comfortable letting it run unattended if every negative claim came with the exact
+    set of sources it searched, if something like a bar height read from a figure were clearly
+    distinguished from a verified string match, and if the whole trace were machine-checkable. None of
+    that is true right now.
+  </p>
+
+  <p>
+    So auditing this run took longer than finding the citations myself would have. I think it was still
+    worth doing once to get a sense of the base rate, but I wouldn&rsquo;t turn it into a regular workflow yet.
+  </p>
+
+  <hr>
+
+  <h2>References</h2>
+  <ul class="references">
+    <li>
+      Jiaxin Wen et al. Unsupervised Elicitation of Language Models (Internal Coherence
+      Maximization). 2025.
+      <a href="https://arxiv.org/abs/2506.10139">arXiv:2506.10139</a>
+    </li>
+    <li>
+      Tianyi Qiu, Ahmed Hani Ismail, Zhonghao He, Shi Feng. Self-Improvement as Coherence
+      Optimization: A Theoretical Account. TMLR, 2026.
+      <a href="https://arxiv.org/abs/2601.13566">arXiv:2601.13566</a>
+    </li>
+    <li>
+      Callum Canavan, Aditya Shrivastava, Allison Qi, Tianyi (Alex) Qiu, Jonathan Michala, Fabien
+      Roger. Eliciting base models with simple unsupervised techniques. LessWrong, 23 January 2026.
+      <a href="https://www.lesswrong.com/posts/rFxfMbwJ3v4PNesWP/eliciting-base-models-with-simple-unsupervised-techniques">lesswrong.com</a>
+    </li>
+  </ul>
+
+</div>
+</body>
+</html>
